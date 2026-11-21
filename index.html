@@ -44,6 +44,25 @@ function size(){W=innerWidth;H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;ctx.se
 size();addEventListener('resize',size);
 var palette=[['#ff8fab','#ffe0e9'],['#ffd166','#fff3c4'],['#c9a7ff','#efe3ff'],['#ff6b9d','#ffd1e3'],['#ffffff','#ffe9f1'],['#ff9e7a','#ffe1d6']];
 var flowers=[],petals=[],stars=[],GOAL=6,shown=false,started=false;
+var fireflies=[],butterflies=[];
+for(var i=0;i<22;i++)fireflies.push({x:Math.random(),y:.3+Math.random()*.7,ph:Math.random()*6,sp:.3+Math.random()*.5,r:1.5+Math.random()*1.8});
+function drawMoon(){var r=Math.min(W,H)*.07,x=W*.78,y=H*.1;
+  var g=ctx.createRadialGradient(x,y,r*.6,x,y,r*4);g.addColorStop(0,'rgba(255,240,200,.35)');g.addColorStop(1,'rgba(255,240,200,0)');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r*4,0,6.283);ctx.fill();
+  ctx.fillStyle='#fff3d6';ctx.beginPath();ctx.arc(x,y,r,0,6.283);ctx.fill();
+  ctx.fillStyle='rgba(240,215,170,.5)';ctx.beginPath();ctx.arc(x-r*.3,y-r*.2,r*.22,0,6.283);ctx.fill();
+  ctx.beginPath();ctx.arc(x+r*.35,y+r*.3,r*.15,0,6.283);ctx.fill();}
+function drawFireflies(now){for(var i=0;i<fireflies.length;i++){var q=fireflies[i],x=q.x*W+Math.sin(now/1500*q.sp+q.ph)*30,y=q.y*H+Math.cos(now/1900*q.sp+q.ph)*24,a=.25+.75*Math.max(0,Math.sin(now/800*q.sp+q.ph));
+  var g=ctx.createRadialGradient(x,y,0,x,y,q.r*6);g.addColorStop(0,'rgba(255,240,150,'+a+')');g.addColorStop(1,'rgba(255,240,150,0)');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,q.r*6,0,6.283);ctx.fill();}}
+function drawButterflies(now){for(var i=0;i<butterflies.length;i++){var b=butterflies[i],f=b.f;if(f.tx==null)continue;
+  var tx=f.tx+Math.cos(now/700+b.ph)*34,ty=f.ty+Math.sin(now/500+b.ph)*18-26;
+  b.x+=(tx-b.x)*.03;b.y+=(ty-b.y)*.03;
+  var w=.3+Math.abs(Math.sin(now/110+b.ph));
+  ctx.save();ctx.translate(b.x,b.y);ctx.fillStyle=b.c;ctx.globalAlpha=.9;
+  ctx.beginPath();ctx.ellipse(-5*w,-3,7*w,5,-.5,0,6.283);ctx.fill();
+  ctx.beginPath();ctx.ellipse(5*w,-3,7*w,5,.5,0,6.283);ctx.fill();
+  ctx.fillStyle='#3a1b3f';ctx.fillRect(-1,-6,2,12);ctx.restore();}}
 for(var i=0;i<50;i++)stars.push({x:Math.random(),y:Math.random()*.6,r:Math.random()*1.4+.3,p:Math.random()*6});
 function ease(t){return 1-Math.pow(1-t,3)}
 function spawnPetal(x,y,c,burst){petals.push({x:x,y:y,vx:(Math.random()-.5)*(burst?3:.6),vy:burst?-Math.random()*2:Math.random()*.4+.2,r:Math.random()*6.3,vr:(Math.random()-.5)*.06,s:Math.random()*5+4,c:c,life:1,ph:Math.random()*6})}
@@ -60,20 +79,24 @@ function drawFlower(f,now){
     ctx.beginPath();ctx.ellipse(lx+10,ly,12*sp,5*sp,-.5,0,6.3);ctx.fill();
     ctx.beginPath();ctx.ellipse(lx-10,ly+18,11*sp,4.5*sp,.5,0,6.3);ctx.fill();}
   if(bp>0){
-    if(!f.burst){f.burst=true;for(var i=0;i<8;i++)spawnPetal(tx,ty,f.col[0],true)}
+    f.tx=tx;f.ty=ty;
+    if(!f.burst){f.burst=true;for(var i=0;i<8;i++)spawnPetal(tx,ty,f.col[0],true);
+      butterflies.push({x:Math.random()<.5?-20:W+20,y:Math.random()*H*.4,f:f,ph:Math.random()*6,c:f.col[0]});if(butterflies.length>8)butterflies.shift();}
     var sz=f.size*bp,rot=now/4000;
     for(var i=0;i<f.n;i++){var a=rot+i/f.n*6.283;ctx.save();ctx.translate(tx,ty);ctx.rotate(a);
       var g=ctx.createLinearGradient(0,0,0,-sz*1.5);g.addColorStop(0,f.col[1]);g.addColorStop(1,f.col[0]);
-      ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(0,-sz*.8,sz*.42,sz*.8,0,0,6.283);ctx.fill();ctx.restore();}
+      ctx.shadowColor=f.col[0];ctx.shadowBlur=18*bp;ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(0,-sz*.8,sz*.42,sz*.8,0,0,6.283);ctx.fill();ctx.restore();}
     ctx.fillStyle='#ffd166';ctx.beginPath();ctx.arc(tx,ty,sz*.28,0,6.283);ctx.fill();
     ctx.fillStyle='#ff9e4a';ctx.beginPath();ctx.arc(tx,ty,sz*.14,0,6.283);ctx.fill();
   }
 }
 function loop(now){
-  ctx.clearRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);drawMoon();
   for(var i=0;i<stars.length;i++){var s=stars[i];ctx.globalAlpha=.4+.4*Math.sin(now/700+s.p);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(s.x*W,s.y*H,s.r,0,6.283);ctx.fill()}
   ctx.globalAlpha=1;
+  drawFireflies(now);
   for(var i=0;i<flowers.length;i++)drawFlower(flowers[i],now);
+  drawButterflies(now);
   if(Math.random()<.06&&started){spawnPetal(Math.random()*W,-10,palette[Math.floor(Math.random()*palette.length)][0],false)}
   for(var i=petals.length-1;i>=0;i--){var q=petals[i];q.x+=q.vx+Math.sin(now/600+q.ph)*.4;q.y+=q.vy;q.vy+=q.vy<1.2?.03:0;q.vx*=.99;q.r+=q.vr;
     if(q.y>H+20){petals.splice(i,1);continue}
