@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>For Samiira 🌸</title>
+<style>
+:root{--bg1:#2a1030;--bg2:#5b2a5e;--bg3:#e58fa8;--text:#fff4f7;--card:rgba(30,10,36,.72);box-sizing:border-box;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:linear-gradient(180deg,var(--bg1),var(--bg2) 60%,var(--bg3));color:var(--text);font-family:Georgia,'Times New Roman',serif;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+#hint{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 18vh);text-align:center;padding:0 24px;transition:opacity .8s;pointer-events:none}
+#hint h1{font-size:clamp(28px,8vw,44px);margin:0 0 10px;font-weight:normal}
+#hint p{margin:0;opacity:.85;font-size:clamp(16px,4.5vw,20px);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.4}}
+#msg{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity 1s}
+#msg.show{opacity:1;pointer-events:auto}
+.card{max-width:420px;background:var(--card);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);border-radius:22px;padding:28px 24px;text-align:center;line-height:1.6;font-size:clamp(16px,4.4vw,19px)}
+.card h2{margin:0 0 12px;font-weight:normal;font-size:clamp(26px,7vw,34px)}
+.card p{margin:0 0 12px;opacity:0;transform:translateY(8px);transition:opacity 1s,transform 1s}
+.card.go p{opacity:1;transform:none}
+.card.go p:nth-of-type(2){transition-delay:1.2s}
+.card.go p:nth-of-type(3){transition-delay:2.4s}
+.card.go p:nth-of-type(4){transition-delay:3.6s}
+button{margin-top:6px;font:inherit;color:var(--text);background:rgba(229,143,168,.35);border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:10px 22px;cursor:pointer}
+#count{position:fixed;right:16px;top:calc(env(safe-area-inset-top,0px) + 12px);font-size:15px;opacity:.7}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hint"><h1>Hi Samiira 🌸</h1><p>Tap anywhere to grow a flower</p></div>
+<div id="count"></div>
+<div id="msg"><div class="card" id="card">
+<h2>Samiira 🌷</h2>
+<p>I wanted to give you flowers that never wilt.</p>
+<p>You make ordinary days feel softer and brighter, and I smile more because of you.</p>
+<p>Consider this little garden a tiny way of saying you’re special to me. 💗</p>
+<button id="more">Plant more flowers 🌸</button>
+</div></div>
+<script>
+(function(){
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W,H,dpr=Math.min(window.devicePixelRatio||1,2);
+function size(){W=innerWidth;H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}
+size();addEventListener('resize',size);
+var palette=[['#ff8fab','#ffe0e9'],['#ffd166','#fff3c4'],['#c9a7ff','#efe3ff'],['#ff6b9d','#ffd1e3'],['#ffffff','#ffe9f1'],['#ff9e7a','#ffe1d6']];
+var flowers=[],petals=[],stars=[],GOAL=6,shown=false,started=false;
+for(var i=0;i<50;i++)stars.push({x:Math.random(),y:Math.random()*.6,r:Math.random()*1.4+.3,p:Math.random()*6});
+function ease(t){return 1-Math.pow(1-t,3)}
+function spawnPetal(x,y,c,burst){petals.push({x:x,y:y,vx:(Math.random()-.5)*(burst?3:.6),vy:burst?-Math.random()*2:Math.random()*.4+.2,r:Math.random()*6.3,vr:(Math.random()-.5)*.06,s:Math.random()*5+4,c:c,life:1,ph:Math.random()*6})}
+function plant(x,y){
+  var col=palette[Math.floor(Math.random()*palette.length)];
+  flowers.push({x:x,y:y,t:performance.now(),col:col,n:6+Math.floor(Math.random()*4),size:26+Math.random()*16,lean:(Math.random()-.5)*40,burst:false});
+}
+function drawFlower(f,now){
+  var p=Math.min((now-f.t)/2200,1),sp=ease(Math.min(p/.5,1)),bp=p<.5?0:ease((p-.5)/.5);
+  var sway=Math.sin(now/900+f.x)*4*sp,baseY=H+10,tx=f.x+f.lean+sway,ty=baseY-(baseY-f.y)*sp;
+  ctx.strokeStyle='#6fcf8f';ctx.lineWidth=3;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(f.x,baseY);ctx.quadraticCurveTo(f.x+f.lean*1.2,(baseY+ty)/2,tx,ty);ctx.stroke();
+  if(sp>.4){var ly=baseY-(baseY-ty)*.45,lx=f.x+f.lean*.5;ctx.fillStyle='#6fcf8f';
+    ctx.beginPath();ctx.ellipse(lx+10,ly,12*sp,5*sp,-.5,0,6.3);ctx.fill();
+    ctx.beginPath();ctx.ellipse(lx-10,ly+18,11*sp,4.5*sp,.5,0,6.3);ctx.fill();}
+  if(bp>0){
+    if(!f.burst){f.burst=true;for(var i=0;i<8;i++)spawnPetal(tx,ty,f.col[0],true)}
+    var sz=f.size*bp,rot=now/4000;
+    for(var i=0;i<f.n;i++){var a=rot+i/f.n*6.283;ctx.save();ctx.translate(tx,ty);ctx.rotate(a);
+      var g=ctx.createLinearGradient(0,0,0,-sz*1.5);g.addColorStop(0,f.col[1]);g.addColorStop(1,f.col[0]);
+      ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(0,-sz*.8,sz*.42,sz*.8,0,0,6.283);ctx.fill();ctx.restore();}
+    ctx.fillStyle='#ffd166';ctx.beginPath();ctx.arc(tx,ty,sz*.28,0,6.283);ctx.fill();
+    ctx.fillStyle='#ff9e4a';ctx.beginPath();ctx.arc(tx,ty,sz*.14,0,6.283);ctx.fill();
+  }
+}
+function loop(now){
+  ctx.clearRect(0,0,W,H);
+  for(var i=0;i<stars.length;i++){var s=stars[i];ctx.globalAlpha=.4+.4*Math.sin(now/700+s.p);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(s.x*W,s.y*H,s.r,0,6.283);ctx.fill()}
+  ctx.globalAlpha=1;
+  for(var i=0;i<flowers.length;i++)drawFlower(flowers[i],now);
+  if(Math.random()<.06&&started){spawnPetal(Math.random()*W,-10,palette[Math.floor(Math.random()*palette.length)][0],false)}
+  for(var i=petals.length-1;i>=0;i--){var q=petals[i];q.x+=q.vx+Math.sin(now/600+q.ph)*.4;q.y+=q.vy;q.vy+=q.vy<1.2?.03:0;q.vx*=.99;q.r+=q.vr;
+    if(q.y>H+20){petals.splice(i,1);continue}
+    ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.r);ctx.fillStyle=q.c;ctx.globalAlpha=.85;
+    ctx.beginPath();ctx.ellipse(0,0,q.s,q.s*.55,0,0,6.283);ctx.fill();ctx.restore();}
+  ctx.globalAlpha=1;
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+var msg=document.getElementById('msg'),card=document.getElementById('card'),count=document.getElementById('count'),hint=document.getElementById('hint');
+function tap(e){
+  if(msg.classList.contains('show'))return;
+  var pt=e.touches?e.touches[0]:e;
+  if(!started){started=true;hint.style.opacity=0}
+  plant(pt.clientX,Math.max(pt.clientY,H*.18));
+  var n=flowers.length;count.textContent=shown?'':'🌸 '+Math.min(n,GOAL)+' / '+GOAL;
+  if(n>=GOAL&&!shown){shown=true;count.textContent='';setTimeout(function(){msg.classList.add('show');setTimeout(function(){card.classList.add('go')},300)},2600)}
+}
+cv.addEventListener('pointerdown',tap);
+document.getElementById('more').addEventListener('click',function(){msg.classList.remove('show')});
+})();
+</script>
+</body>
+</html>
